@@ -637,6 +637,8 @@ tr.sel .badge{background:rgba(255,255,255,.22);color:#fff}
     </div>
   </div>
   <div class="hdr-stats" id="hdr-inv-stats">
+    <div class="stat" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35)"><span class="stat-dot" style="background:#fff"></span>Total<span class="stat-n" id="s-total">—</span></div>
+    <div style="width:1px;height:22px;background:rgba(255,255,255,.2);margin:0 2px"></div>
     <div class="stat ln"><span class="stat-dot"></span>Like New<span class="stat-n" id="s-ln">—</span></div>
     <div class="stat rp"><span class="stat-dot"></span>Replacement<span class="stat-n" id="s-rp">—</span></div>
     <div class="stat nw"><span class="stat-dot"></span>New<span class="stat-n" id="s-nw">—</span></div>
@@ -1029,6 +1031,7 @@ async function loadInventory(){
 function updateInvStats(){
   const c = cat => invAll.filter(i=>i.category===cat).length;
   const m = mdl => invAll.filter(i=>i.model===mdl).length;
+  document.getElementById('s-total').textContent = invAll.length;
   document.getElementById('s-ln').textContent  = c('Like New');
   document.getElementById('s-rp').textContent  = c('Replacement');
   document.getElementById('s-nw').textContent  = c('New');
