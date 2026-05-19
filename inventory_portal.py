@@ -433,6 +433,9 @@ body{background:var(--bg);height:100vh;display:flex;flex-direction:column;overfl
 .stat.ln .stat-dot{background:#93c5fd}
 .stat.rp .stat-dot{background:#fdba74}
 .stat.nw .stat-dot{background:#86efac}
+.stat.clickable{cursor:pointer;transition:background .15s,box-shadow .15s}
+.stat.clickable:hover{background:rgba(255,255,255,.22)}
+.stat.clickable.active{background:rgba(255,255,255,.32);box-shadow:0 0 0 2px rgba(255,255,255,.6)}
 .stat.bk .stat-dot{background:#fcd34d}
 
 /* Toolbar */
@@ -637,16 +640,16 @@ tr.sel .badge{background:rgba(255,255,255,.22);color:#fff}
     </div>
   </div>
   <div class="hdr-stats" id="hdr-inv-stats">
-    <div class="stat" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35)"><span class="stat-dot" style="background:#fff"></span>Total<span class="stat-n" id="s-total">—</span></div>
+    <div class="stat clickable" id="badge-total" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35)" onclick="setBadgeFilter('reset')"><span class="stat-dot" style="background:#fff"></span>Total<span class="stat-n" id="s-total">—</span></div>
     <div style="width:1px;height:22px;background:rgba(255,255,255,.2);margin:0 2px"></div>
-    <div class="stat ln"><span class="stat-dot"></span>Like New<span class="stat-n" id="s-ln">—</span></div>
-    <div class="stat rp"><span class="stat-dot"></span>Replacement<span class="stat-n" id="s-rp">—</span></div>
-    <div class="stat nw"><span class="stat-dot"></span>New<span class="stat-n" id="s-nw">—</span></div>
-    <div class="stat bk"><span class="stat-dot"></span>Booked<span class="stat-n" id="s-bk">—</span></div>
+    <div class="stat ln clickable" id="badge-ln" onclick="setBadgeFilter('cat','Like New')"><span class="stat-dot"></span>Like New<span class="stat-n" id="s-ln">—</span></div>
+    <div class="stat rp clickable" id="badge-rp" onclick="setBadgeFilter('cat','Replacement')"><span class="stat-dot"></span>Replacement<span class="stat-n" id="s-rp">—</span></div>
+    <div class="stat nw clickable" id="badge-nw" onclick="setBadgeFilter('cat','New')"><span class="stat-dot"></span>New<span class="stat-n" id="s-nw">—</span></div>
+    <div class="stat bk clickable" id="badge-bk" onclick="setBadgeFilter('cat','booked')"><span class="stat-dot"></span>Booked<span class="stat-n" id="s-bk">—</span></div>
     <div style="width:1px;height:22px;background:rgba(255,255,255,.2);margin:0 2px"></div>
-    <div class="stat" style="background:rgba(255,255,255,.08)"><span class="stat-dot" style="background:#7dd3fc"></span>S4<span class="stat-n" id="s-s4">—</span></div>
-    <div class="stat" style="background:rgba(255,255,255,.08)"><span class="stat-dot" style="background:#a5b4fc"></span>V3S<span class="stat-n" id="s-v3s">—</span></div>
-    <div class="stat" style="background:rgba(255,255,255,.08)"><span class="stat-dot" style="background:#6ee7b7"></span>V4<span class="stat-n" id="s-v4">—</span></div>
+    <div class="stat clickable" id="badge-s4" style="background:rgba(255,255,255,.08)" onclick="setBadgeFilter('mdl','S4')"><span class="stat-dot" style="background:#7dd3fc"></span>S4<span class="stat-n" id="s-s4">—</span></div>
+    <div class="stat clickable" id="badge-v3s" style="background:rgba(255,255,255,.08)" onclick="setBadgeFilter('mdl','V3S')"><span class="stat-dot" style="background:#a5b4fc"></span>V3S<span class="stat-n" id="s-v3s">—</span></div>
+    <div class="stat clickable" id="badge-v4" style="background:rgba(255,255,255,.08)" onclick="setBadgeFilter('mdl','V4')"><span class="stat-dot" style="background:#6ee7b7"></span>V4<span class="stat-n" id="s-v4">—</span></div>
   </div>
   <div id="hdr-hist-stats" style="display:none;gap:8px" class="hdr-stats">
     <div class="stat ln"><span class="stat-dot" style="background:#93c5fd"></span>IN<span class="stat-n" id="hs-in">—</span></div>
@@ -968,7 +971,7 @@ tr.sel .badge{background:rgba(255,255,255,.22);color:#fff}
 <script>
 // ── State ─────────────────────────────────────────────────────────────────
 let invAll=[], invFiltered=[], invSel=new Set();
-let invFcat='all', invScol='model', invSdir=1;
+let invFcat='all', invFmdl='all', invScol='model', invSdir=1;
 
 let histAll=[], histFiltered=[];
 let histFdir='all', histFver='all', histFrsn='all', histScol='date', histSdir=-1;
@@ -1062,9 +1065,10 @@ function applyInvFilters(){
   const q = document.getElementById('inv-q').value.toLowerCase().trim();
   invFiltered = invAll.filter(i=>{
     const isBooked = i.status === 'booked';
+    if(invFmdl !== 'all' && i.model !== invFmdl) return false;
     if(invFcat === 'booked')  return isBooked;
     if(invFcat !== 'all' && i.category !== invFcat) return false;
-    if(invFcat !== 'all' && isBooked) return false;   // category filter excludes booked
+    if(invFcat !== 'all' && isBooked) return false;
     const srchOk = !q || [i.model,i.version,i.code,i.customer,i.order,
                            i.booked_customer,i.booked_order,i.booked_purpose]
                            .some(v=>(v||'').toLowerCase().includes(q));
@@ -1077,6 +1081,39 @@ function setInvCat(f,btn){
   invFcat=f;
   document.querySelectorAll('#view-inventory .toolbar .fb').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on'); applyInvFilters();
+}
+
+function setBadgeFilter(type, value){
+  const catMap = {'Like New':'badge-ln','Replacement':'badge-rp','New':'badge-nw','booked':'badge-bk'};
+  const mdlMap = {'S4':'badge-s4','V3S':'badge-v3s','V4':'badge-v4'};
+  const allBadges = ['badge-total','badge-ln','badge-rp','badge-nw','badge-bk','badge-s4','badge-v3s','badge-v4'];
+
+  if(type === 'reset'){
+    invFcat='all'; invFmdl='all';
+    allBadges.forEach(id=>document.getElementById(id).classList.remove('active'));
+    // sync toolbar buttons
+    const allBtn = document.querySelector('#view-inventory .toolbar .fb');
+    document.querySelectorAll('#view-inventory .toolbar .fb').forEach(b=>b.classList.remove('on'));
+    if(allBtn) allBtn.classList.add('on');
+  } else if(type === 'cat'){
+    const badgeId = catMap[value];
+    const isActive = document.getElementById(badgeId).classList.contains('active');
+    // clear all cat badges
+    Object.values(catMap).forEach(id=>document.getElementById(id).classList.remove('active'));
+    if(isActive){ invFcat='all'; }
+    else { invFcat=value; document.getElementById(badgeId).classList.add('active'); }
+    // sync toolbar buttons
+    document.querySelectorAll('#view-inventory .toolbar .fb').forEach(b=>{
+      b.classList.toggle('on', b.textContent.trim()===(isActive?'All':value==='booked'?'Booked':value));
+    });
+  } else if(type === 'mdl'){
+    const badgeId = mdlMap[value];
+    const isActive = document.getElementById(badgeId).classList.contains('active');
+    Object.values(mdlMap).forEach(id=>document.getElementById(id).classList.remove('active'));
+    invFmdl = isActive ? 'all' : value;
+    if(!isActive) document.getElementById(badgeId).classList.add('active');
+  }
+  applyInvFilters();
 }
 
 function sortInv(col){
